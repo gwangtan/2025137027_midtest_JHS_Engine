@@ -167,9 +167,9 @@ public class PlayerController : MonoBehaviour
             // Idle로 돌아갈 경우에만 쿨타임 적용
             switch (attackIndex)
             {
-                case 1: attackCooldownTime = Time.time + 2f; break;    // Attack
-                case 2: attackCooldownTime = Time.time + 2f; break;    // Attack1
-                case 3: attackCooldownTime = Time.time + 2.5f; break;  // Attack2
+                case 1: attackCooldownTime = Time.time + 1f; break;    // Attack
+                case 2: attackCooldownTime = Time.time + 1f; break;    // Attack1
+                case 3: attackCooldownTime = Time.time + 1.5f; break;  // Attack2
             }
 
             // Attack2 완료 후 Idle로 복귀
