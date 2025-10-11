@@ -7,13 +7,18 @@ public class WeaponDamage : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // 공격 중일 때만 대미지 적용
         if (playerController != null && other.CompareTag("Monster") && IsAttacking())
         {
             MonsterController monster = other.GetComponent<MonsterController>();
             if (monster != null)
             {
                 monster.TakeDamage(damage);
+
+                //  카메라 쉐이크 호출
+                if (CameraShake.Instance != null)
+                {
+                    CameraShake.Instance.TriggerShake(0.15f, 0.2f);
+                }
             }
         }
     }
@@ -24,4 +29,6 @@ public class WeaponDamage : MonoBehaviour
         var isAttackingField = typeof(PlayerController).GetField("isAttacking", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         return (bool)isAttackingField.GetValue(playerController);
     }
+
+
 }
