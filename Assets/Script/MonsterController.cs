@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(CharacterController))]
 public class MonsterController : MonoBehaviour
@@ -28,6 +29,8 @@ public class MonsterController : MonoBehaviour
 
     public GameObject body; // Body 모델 직접 넣기
 
+    public Slider MobSlider;
+
 
     void Start()
     {
@@ -49,6 +52,8 @@ public class MonsterController : MonoBehaviour
                 part.SetActive(false);
         }
         audioSource = GetComponent<AudioSource>();
+
+        MobSlider.value = 1f;
     }
 
     void Update()
@@ -68,6 +73,7 @@ public class MonsterController : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
+
         if (isDead) return;
 
         currentHealth -= amount;
@@ -75,6 +81,7 @@ public class MonsterController : MonoBehaviour
         {
             Die();
         }
+        MobSlider.value = (float)currentHealth / maxHealth;
     }
 
     void Die()
