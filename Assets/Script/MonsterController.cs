@@ -22,15 +22,18 @@ public class MonsterController : MonoBehaviour
     private bool isAttackingPlayer = false;
     private bool isDead = false;
 
+    [Header("사운드 및 이펙트")]
     public GameObject deathEffectPrefab; // Inspector에 넣기
-
     public AudioClip deathSound;
     private AudioSource audioSource;
 
+    [Header("본체 및 UI")]
     public GameObject body; // Body 모델 직접 넣기
-
     public Slider MobSlider;
 
+    [Header("스턴 설정")]
+    private bool isStunned = false; // 스턴 상태
+    private float stunDuration = 0.3f; // 스턴 시간
 
     void Start()
     {
@@ -51,14 +54,14 @@ public class MonsterController : MonoBehaviour
             if (part != null)
                 part.SetActive(false);
         }
-        audioSource = GetComponent<AudioSource>();
 
+        audioSource = GetComponent<AudioSource>();
         MobSlider.value = 1f;
     }
 
     void Update()
     {
-        if (isDead || player == null) return;
+        if (isDead || player == null || isStunned) return; // 스턴 상태면 이동 안함
 
         float distance = Vector3.Distance(transform.position, player.position);
 
@@ -73,7 +76,6 @@ public class MonsterController : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-
         if (isDead) return;
 
         currentHealth -= amount;
@@ -82,6 +84,16 @@ public class MonsterController : MonoBehaviour
             Die();
         }
         MobSlider.value = (float)currentHealth / maxHealth;
+
+        // 데미지를 받으면 스턴 적용
+        StartCoroutine(StunRoutine());
+    }
+
+    private IEnumerator StunRoutine()
+    {
+        isStunned = true;
+        yield return new WaitForSeconds(stunDuration);
+        isStunned = false;
     }
 
     void Die()
@@ -121,8 +133,6 @@ public class MonsterController : MonoBehaviour
             Destroy(part, destroyDelay);
         }
 
-
-
         Destroy(gameObject, destroyDelay + 0.5f);
 
         if (deathEffectPrefab != null)
@@ -156,8 +166,7 @@ public class MonsterController : MonoBehaviour
         while (isAttackingPlayer)
         {
             if (playerHealth != null)
-                playerHealth.TakeDamage(2); foreach (var mesh in GetComponentsInChildren<SkinnedMeshRenderer>())
-                mesh.enabled = false;
+                playerHealth.TakeDamage(2);
             yield return new WaitForSeconds(1.5f);
         }
     }

@@ -1,19 +1,20 @@
-using UnityEngine;
+ï»¿using UnityEngine;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("ÀÌµ¿ ¼³Á¤")]
+    [Header("ì´ë™ ì„¤ì •")]
     public float walkSpeed = 5f;
     public float runSpeed = 10f;
     public float jumpPower = 5f;
     public float gravity = -9.81f;
 
-    [Header("Ä«¸Ş¶ó ¼³Á¤")]
+    [Header("ì¹´ë©”ë¼ ì„¤ì •")]
     public float mouseSensitivity = 400f;
     private float xRotation = 0f;
 
-    [Header("ÄÄÆ÷³ÍÆ®")]
+    [Header("ì»´í¬ë„ŒíŠ¸")]
     public Animator animator;
     private CharacterController controller;
     private Camera playerCamera;
@@ -22,12 +23,16 @@ public class PlayerController : MonoBehaviour
     private float currentSpeed;
     private Vector3 velocity;
 
-    [Header("ÄŞº¸ °ø°İ")]
-    public float attackDuration = 0.6f;  // °¢ °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç ±æÀÌ
+    [Header("ì½¤ë³´ ê³µê²©")]
+    public float attackDuration = 0.6f;  // ê° ê³µê²© ì• ë‹ˆë©”ì´ì…˜ ê¸¸ì´
     private int attackIndex = 0;          // 0=Attack, 1=Attack1, 2=Attack2
     private bool isAttacking = false;
-    private bool queuedAttack = false;    // ÇÑ ¹ø¸¸ ¿¹¾à
-    private float attackCooldownTime = 0f; // ÄğÅ¸ÀÓ ³¡ ½Ã°£
+    private bool queuedAttack = false;
+    private float attackCooldownTime = 0f;
+
+    //  ì¹´ë©”ë¼ íšŒì „ íš¨ê³¼ ê´€ë ¨
+    private Quaternion originalCamRot;
+    private Coroutine camEffectCoroutine;
 
     void Start()
     {
@@ -39,6 +44,9 @@ public class PlayerController : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (playerCamera != null)
+            originalCamRot = playerCamera.transform.localRotation;
     }
 
     void Update()
@@ -51,7 +59,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------------------------
-    // ÀÌµ¿
+    // ì´ë™
     // ---------------------------
     void HandleMovement()
     {
@@ -61,7 +69,6 @@ public class PlayerController : MonoBehaviour
         moveDirection = transform.forward * vertical + transform.right * horizontal;
         moveDirection.Normalize();
 
-        // °ø°İ Áß ÀÌµ¿ Á¦ÇÑ
         currentSpeed = (isAttacking) ? 0f :
                        (moveDirection.magnitude >= 0.1f) ? (Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed) : 0f;
 
@@ -69,7 +76,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------------------------
-    // È¸Àü
+    // ë§ˆìš°ìŠ¤ íšŒì „
     // ---------------------------
     void HandleRotation()
     {
@@ -84,7 +91,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------------------------
-    // Á¡ÇÁ & Áß·Â
+    // ì í”„ & ì¤‘ë ¥
     // ---------------------------
     void HandleJumpAndGravity()
     {
@@ -99,7 +106,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------------------------
-    // Animator ¾÷µ¥ÀÌÆ®
+    // Animator ì—…ë°ì´íŠ¸
     // ---------------------------
     void UpdateAnimator()
     {
@@ -108,20 +115,19 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------------------------
-    // °ø°İ ÀÔ·Â Ã³¸®
+    // ê³µê²© ì…ë ¥ ì²˜ë¦¬
     // ---------------------------
     void HandleAttackInput()
     {
         if (Input.GetMouseButtonDown(0))
         {
-            // ÄğÅ¸ÀÓ Àû¿ë, ´Ü ÄŞº¸ Áß¿¡´Â ¹«½Ã
             if (!isAttacking && Time.time < attackCooldownTime)
                 return;
 
             if (isAttacking)
             {
                 if (!queuedAttack && attackIndex <= 2)
-                    queuedAttack = true; // ÇÑ ¹ø¸¸ ¿¹¾à
+                    queuedAttack = true;
             }
             else
             {
@@ -130,13 +136,15 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // ---------------------------
+    // ê³µê²© ì‹¤í–‰
+    // ---------------------------
     void DoAttack()
     {
         isAttacking = true;
         queuedAttack = false;
 
         string attackClip = "";
-
         switch (attackIndex)
         {
             case 0: attackClip = "Attack"; break;
@@ -146,36 +154,77 @@ public class PlayerController : MonoBehaviour
 
         animator.CrossFadeInFixedTime(attackClip, 0f);
 
+        //  ê³µê²©ë³„ ì¹´ë©”ë¼ íšŒì „ íš¨ê³¼ ì ìš©
+        if (camEffectCoroutine != null)
+            StopCoroutine(camEffectCoroutine);
+
+        if (attackClip == "Attack")
+            camEffectCoroutine = StartCoroutine(SmoothCameraSwing(new Vector3(12f, 12f, 4f)));
+        else if (attackClip == "Attack1")
+            camEffectCoroutine = StartCoroutine(SmoothCameraSwing(new Vector3(4f, 12f, -6f)));
+        else if (attackClip == "Attack2")
+            camEffectCoroutine = StartCoroutine(SmoothCameraSwing(new Vector3(0f, 0f, 4f)));
+
         CancelInvoke(nameof(EndAttack));
         Invoke(nameof(EndAttack), attackDuration);
 
-        attackIndex = Mathf.Min(attackIndex + 1, 3); // Attack2 ÀÌÈÄ´Â 3À¸·Î À¯Áö
+        attackIndex = Mathf.Min(attackIndex + 1, 3);
     }
 
+    // ---------------------------
+    // ê³µê²© ì¢…ë£Œ
+    // ---------------------------
     void EndAttack()
     {
         isAttacking = false;
 
         if (queuedAttack && attackIndex <= 2)
         {
-            // ¿¹¾àµÈ °ø°İÀÌ ÀÖÀ¸¸é Áï½Ã ´ÙÀ½ °ø°İ ½ÇÇà, ÄğÅ¸ÀÓ ¹«½Ã
             queuedAttack = false;
             DoAttack();
         }
         else
         {
-            // Idle·Î µ¹¾Æ°¥ °æ¿ì¿¡¸¸ ÄğÅ¸ÀÓ Àû¿ë
             switch (attackIndex)
             {
-                case 1: attackCooldownTime = Time.time + 1f; break;    // Attack
-                case 2: attackCooldownTime = Time.time + 1f; break;    // Attack1
-                case 3: attackCooldownTime = Time.time + 1.5f; break;  // Attack2
+                case 1: attackCooldownTime = Time.time + 1f; break;
+                case 2: attackCooldownTime = Time.time + 1f; break;
+                case 3: attackCooldownTime = Time.time + 1.5f; break;
             }
 
-            // Attack2 ¿Ï·á ÈÄ Idle·Î º¹±Í
             if (attackIndex > 2)
                 attackIndex = 0;
-            // Attack / Attack1 Áß Å¬¸¯ ¾øÀ¸¸é attackIndex À¯Áö ¡æ Idle·Î ¹Ù·Î ¾È µ¹¾Æ°¨
         }
+    }
+
+    // ---------------------------
+    // ì¹´ë©”ë¼ ë¶€ë“œëŸ¬ìš´ íšŒì „ íƒ€ê²© íš¨ê³¼
+    // ---------------------------
+    IEnumerator SmoothCameraSwing(Vector3 targetEuler)
+    {
+        Quaternion startRot = playerCamera.transform.localRotation;
+        Quaternion targetRot = startRot * Quaternion.Euler(targetEuler);
+
+        float halfDuration = attackDuration * 0.5f; // ì „ë°˜: íšŒì „, í›„ë°˜: ë³µê·€
+        float t = 0f;
+
+        // 1ï¸âƒ£ ì „ë°˜ë¶€ - ë¶€ë“œëŸ½ê²Œ íšŒì „
+        while (t < 1f)
+        {
+            t += Time.deltaTime / halfDuration;
+            playerCamera.transform.localRotation = Quaternion.Slerp(startRot, targetRot, Mathf.SmoothStep(0f, 1f, t));
+            yield return null;
+        }
+
+        // 2ï¸âƒ£ í›„ë°˜ë¶€ - ë¶€ë“œëŸ½ê²Œ ë³µê·€
+        t = 0f;
+        while (t < 1f)
+        {
+            t += Time.deltaTime / halfDuration;
+            playerCamera.transform.localRotation = Quaternion.Slerp(targetRot, startRot, Mathf.SmoothStep(0f, 1f, t));
+            yield return null;
+        }
+
+        playerCamera.transform.localRotation = startRot;
     }
 }
