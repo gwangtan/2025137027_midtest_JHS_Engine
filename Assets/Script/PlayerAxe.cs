@@ -12,26 +12,38 @@ public class WeaponDamage : MonoBehaviour
     {
         if (playerController != null && other.CompareTag("Monster") && IsAttacking())
         {
+            bool hitSomething = false;
+
+            //  기존 몬스터 타입
             MonsterController monster = other.GetComponent<MonsterController>();
             if (monster != null)
             {
-                // 몬스터에게 데미지 주기
                 monster.TakeDamage(damage);
+                hitSomething = true;
+            }
+            else
+            {
+                //  움직이지 않는 몬스터 타입
+                StationaryShooterMonster shooterMonster = other.GetComponent<StationaryShooterMonster>();
+                if (shooterMonster != null)
+                {
+                    shooterMonster.TakeDamage(damage);
+                    hitSomething = true;
+                }
+            }
 
-                // 카메라 흔들림
+            //  피격 반응 (둘 중 하나라도 맞았을 때)
+            if (hitSomething)
+            {
                 if (CameraShake.Instance != null)
-                {
                     CameraShake.Instance.TriggerShake(0.15f, 0.2f);
-                }
 
-                // 피격 사운드 재생
                 if (audioSource != null)
-                {
                     audioSource.Play();
-                }
             }
         }
     }
+
 
     private bool IsAttacking()
     {
