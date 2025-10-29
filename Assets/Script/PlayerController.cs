@@ -24,14 +24,16 @@ public class PlayerController : MonoBehaviour
     private Vector3 velocity;
 
     [Header("콤보 공격")]
-    public float attackDuration = 0.6f;  // 각 공격 애니메이션 길이
-    private int attackIndex = 0;          // 0=Attack, 1=Attack1, 2=Attack2
+    public float attackDuration = 0.6f;
+    private int attackIndex = 0;
     private bool isAttacking = false;
     private bool queuedAttack = false;
     private float attackCooldownTime = 0f;
 
-    //  카메라 회전 효과 관련
-    private Quaternion originalCamRot;
+    // 넉백
+    [HideInInspector] public Vector3 knockbackVelocity = Vector3.zero;
+    [HideInInspector] public float knockbackTime = 0f;
+
     private Coroutine camEffectCoroutine;
 
     void Start()
@@ -44,9 +46,6 @@ public class PlayerController : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        if (playerCamera != null)
-            originalCamRot = playerCamera.transform.localRotation;
     }
 
     void Update()
@@ -58,26 +57,33 @@ public class PlayerController : MonoBehaviour
         UpdateAnimator();
     }
 
-    // ---------------------------
-    // 이동
-    // ---------------------------
     void HandleMovement()
     {
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
 
-        moveDirection = transform.forward * vertical + transform.right * horizontal;
+        moveDirection = transform.forward * v + transform.right * h;
         moveDirection.Normalize();
 
         currentSpeed = (isAttacking) ? 0f :
                        (moveDirection.magnitude >= 0.1f) ? (Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed) : 0f;
 
-        controller.Move(moveDirection * currentSpeed * Time.deltaTime);
+        // 넉백 포함 이동
+        Vector3 finalMove = moveDirection * currentSpeed + knockbackVelocity;
+        controller.Move(finalMove * Time.deltaTime);
+
+        // 넉백 감속
+        if (knockbackTime > 0f)
+        {
+            knockbackTime -= Time.deltaTime;
+            knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, Time.deltaTime * 10f);
+        }
+        else
+        {
+            knockbackVelocity = Vector3.zero;
+        }
     }
 
-    // ---------------------------
-    // 마우스 회전
-    // ---------------------------
     void HandleRotation()
     {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -85,14 +91,10 @@ public class PlayerController : MonoBehaviour
 
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
-
         playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
     }
 
-    // ---------------------------
-    // 점프 & 중력
-    // ---------------------------
     void HandleJumpAndGravity()
     {
         if (controller.isGrounded && velocity.y < 0)
@@ -105,18 +107,12 @@ public class PlayerController : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
-    // ---------------------------
-    // Animator 업데이트
-    // ---------------------------
     void UpdateAnimator()
     {
-        float animatorSpeed = Mathf.Clamp01(currentSpeed / runSpeed);
-        animator.SetFloat("Speed", animatorSpeed);
+        float animSpeed = Mathf.Clamp01(currentSpeed / runSpeed);
+        animator.SetFloat("Speed", animSpeed);
     }
 
-    // ---------------------------
-    // 공격 입력 처리
-    // ---------------------------
     void HandleAttackInput()
     {
         if (Input.GetMouseButtonDown(0))
@@ -136,9 +132,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ---------------------------
-    // 공격 실행
-    // ---------------------------
     void DoAttack()
     {
         isAttacking = true;
@@ -154,10 +147,10 @@ public class PlayerController : MonoBehaviour
 
         animator.CrossFadeInFixedTime(attackClip, 0f);
 
-        //  공격별 카메라 회전 효과 적용
         if (camEffectCoroutine != null)
             StopCoroutine(camEffectCoroutine);
 
+        // 카메라 회전 효과
         if (attackClip == "Attack")
             camEffectCoroutine = StartCoroutine(SmoothCameraSwing(new Vector3(12f, 12f, 4f)));
         else if (attackClip == "Attack1")
@@ -171,9 +164,6 @@ public class PlayerController : MonoBehaviour
         attackIndex = Mathf.Min(attackIndex + 1, 3);
     }
 
-    // ---------------------------
-    // 공격 종료
-    // ---------------------------
     void EndAttack()
     {
         isAttacking = false;
@@ -197,18 +187,14 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ---------------------------
-    // 카메라 부드러운 회전 타격 효과
-    // ---------------------------
     IEnumerator SmoothCameraSwing(Vector3 targetEuler)
     {
         Quaternion startRot = playerCamera.transform.localRotation;
         Quaternion targetRot = startRot * Quaternion.Euler(targetEuler);
 
-        float halfDuration = attackDuration * 0.5f; // 전반: 회전, 후반: 복귀
+        float halfDuration = attackDuration * 0.5f;
         float t = 0f;
 
-        // 1️⃣ 전반부 - 부드럽게 회전
         while (t < 1f)
         {
             t += Time.deltaTime / halfDuration;
@@ -216,7 +202,6 @@ public class PlayerController : MonoBehaviour
             yield return null;
         }
 
-        // 2️⃣ 후반부 - 부드럽게 복귀
         t = 0f;
         while (t < 1f)
         {

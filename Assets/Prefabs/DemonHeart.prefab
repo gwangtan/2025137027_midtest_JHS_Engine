@@ -204,7 +204,7 @@ MonoBehaviour:
   - {fileID: 4429262931783057932}
   shakeAmount: 0.4
   shakeSpeed: 10
-  healthSlider: {fileID: 0}
+  healthSlider: {fileID: 1664086008276390214}
   explosionParts:
   - {fileID: 9071847176482283646}
   - {fileID: 5537829217151056652}

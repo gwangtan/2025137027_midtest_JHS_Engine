@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class WeaponDamage : MonoBehaviour
 {
@@ -6,7 +6,7 @@ public class WeaponDamage : MonoBehaviour
     public PlayerController playerController;
 
     [Header("Sound Settings")]
-    public AudioSource audioSource;   // ¿Àµğ¿À ¼Ò½º¿¡ ¹Ì¸® È÷Æ® »ç¿îµå(AudioClip) ¿¬°á
+    public AudioSource audioSource;   // ì˜¤ë””ì˜¤ ì†ŒìŠ¤ì— ë¯¸ë¦¬ íˆíŠ¸ ì‚¬ìš´ë“œ(AudioClip) ì—°ê²°
 
     private void OnTriggerEnter(Collider other)
     {
@@ -14,7 +14,7 @@ public class WeaponDamage : MonoBehaviour
         {
             bool hitSomething = false;
 
-            //  ±âÁ¸ ¸ó½ºÅÍ Å¸ÀÔ
+            // 1ï¸âƒ£ ì¼ë°˜ ëª¬ìŠ¤í„°
             MonsterController monster = other.GetComponent<MonsterController>();
             if (monster != null)
             {
@@ -23,16 +23,26 @@ public class WeaponDamage : MonoBehaviour
             }
             else
             {
-                //  ¿òÁ÷ÀÌÁö ¾Ê´Â ¸ó½ºÅÍ Å¸ÀÔ
+                // 2ï¸âƒ£ ê³ ì •í˜• ëª¬ìŠ¤í„°
                 StationaryShooterMonster shooterMonster = other.GetComponent<StationaryShooterMonster>();
                 if (shooterMonster != null)
                 {
                     shooterMonster.TakeDamage(damage);
                     hitSomething = true;
                 }
+                else
+                {
+                    // 3ï¸âƒ£ âœ… ë³´ìŠ¤ íŒ¨í„´1 (BossPattern1)
+                    BossController boss = other.GetComponent<BossController>();
+                    if (boss != null)
+                    {
+                        boss.TakeDamage(damage);
+                        hitSomething = true;
+                    }
+                }
             }
 
-            //  ÇÇ°İ ¹İÀÀ (µÑ Áß ÇÏ³ª¶óµµ ¸Â¾ÒÀ» ¶§)
+            // 4ï¸âƒ£ í”¼ê²© ë°˜ì‘ (ë‘˜ ì¤‘ í•˜ë‚˜ë¼ë„ ë§ì•˜ì„ ë•Œ)
             if (hitSomething)
             {
                 if (CameraShake.Instance != null)
@@ -44,10 +54,9 @@ public class WeaponDamage : MonoBehaviour
         }
     }
 
-
     private bool IsAttacking()
     {
-        // PlayerController ³»ºÎÀÇ isAttacking ÇÃ·¡±× È°¿ë
+        // PlayerController ë‚´ë¶€ì˜ isAttacking í”Œë˜ê·¸ í™œìš©
         var isAttackingField = typeof(PlayerController).GetField("isAttacking", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         return (bool)isAttackingField.GetValue(playerController);
     }
